@@ -1,6 +1,8 @@
 {
   "urls": [
-    ["mqterm/__init__.mpy", "github:solanus-systems/mqterm/mqterm/__init__.mpy"]
+    ["mqterm/__init__.mpy", "github:solanus-systems/mqterm/mqterm/__init__.mpy"],
+    ["mqterm/jobs.mpy", "github:solanus-systems/mqterm/mqterm/jobs.mpy"],
+    ["mqterm/terminal.mpy", "github:solanus-systems/mqterm/mqterm/terminal.mpy"]
   ],
   "deps": [
     ["github:solanus-systems/amqc", "v0.1.0"],

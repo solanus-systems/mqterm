@@ -1,10 +1,12 @@
-# amqc
+# mqterm
 
-[![ci](https://github.com/solanus-systems/amqc/actions/workflows/ci.yml/badge.svg)](https://github.com/solanus-systems/amqc/actions/workflows/ci.yml)
+[![ci](https://github.com/solanus-systems/mqterm/actions/workflows/ci.yml/badge.svg)](https://github.com/solanus-systems/mqterm/actions/workflows/ci.yml)
 
-An async MQTTv5 client for micropython on ESP32 and unix.
+An MQTT-based terminal for remote management of micropython devices.
 
-Adapted from [micropython-mqtt](https://github.com/peterhinch/micropython-mqtt/tree/master).
+Also includes a CPython-based client for interacting with devices running `mqterm` called `mqshell`.
+
+Adapted from [mqboard](https://github.com/tve/mqboard).
 
 ## Installation
 
@@ -12,13 +14,13 @@ On a micropython device, install with `mip` from the REPL:
 
 ```python
 >>> import mip
->>> mip.install("github:solanus-systems/amqc")
+>>> mip.install("github:solanus-systems/mqterm")
 ```
 
 Or on a unix build of micropython via the CLI:
 
 ```bash
-micropython -m mip install github:solanus-systems/amqc
+micropython -m mip install github:solanus-systems/mqterm
 ```
 
 ## Usage

@@ -1,10 +1,10 @@
 {
   "urls": [
-    ["thermostat/__init__.mpy", "github:solanus-systems/micropython-thermostat/thermostat/__init__.mpy"]
+    ["mqterm/__init__.mpy", "github:solanus-systems/mqterm/mqterm/__init__.mpy"]
   ],
   "deps": [
-    ["time", "latest"],
+    ["github:solanus-systems/amqc", "v0.1.0"],
     ["logging", "latest"]
   ],
-  "version": "0.1.1"
+  "version": "0.1.0"
 }

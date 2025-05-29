@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -e
+
+# Install all dependencies listed in test-requirements.txt with mip
+cat test-requirements.txt | while read -r line; do
+  if [[ ! -z "$line" && "$line" != \#* ]]; then
+    micropython -m mip install "$line"
+  fi
+done

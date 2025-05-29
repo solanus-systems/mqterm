@@ -1,0 +1,45 @@
+name: ci
+
+on:
+  push:
+    paths-ignore:
+      - "README.md"
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+      - name: Install dev dependencies
+        run: pip install -r dev-requirements.txt
+      - name: Run linter
+        run: ruff check
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    env:
+      MICROPYPATH: ".frozen:~/.micropython/lib:/usr/lib/micropython:$(pwd)"
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build micropython
+        run: |
+          git clone --depth 1 https://github.com/micropython/micropython.git
+          cd micropython
+          git submodule update --init
+          make -C mpy-cross
+          cp mpy-cross/build/mpy-cross /usr/local/bin/
+          make -C ports/unix
+          cp ports/unix/build-standard/micropython /usr/local/bin/
+          cd ..
+          rm -rf micropython
+      - name: Install test dependencies
+        run: ./bin/setup
+      - name: Install the package
+        run: "micropython -m mip install github:${{ github.repository }}@${{ github.ref_name }}"
+      - name: Cross-compile the package
+        run: ./bin/compile
+      - name: Run tests
+        run: micropython -m unittest

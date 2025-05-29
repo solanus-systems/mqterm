@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -e
+
+# Remove all existing *.mpy files in the project
+find ./mqterm -name "*.mpy" -type f -delete
+
+# Cross-compile all *.py files in the project to *.mpy files
+for file in ./mqterm/*.py; do
+  echo "$file"
+  mpy-cross "$file"
+done

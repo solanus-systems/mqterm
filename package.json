@@ -1,12 +1,12 @@
 {
   "urls": [
-    ["mqterm/__init__.mpy", "github:solanus-systems/mqterm/mqterm/__init__.mpy"],
-    ["mqterm/jobs.mpy", "github:solanus-systems/mqterm/mqterm/jobs.mpy"],
-    ["mqterm/terminal.mpy", "github:solanus-systems/mqterm/mqterm/terminal.mpy"]
+    ["mqterm/__init__.py", "github:solanus-systems/mqterm/mqterm/__init__.py"],
+    ["mqterm/jobs.py", "github:solanus-systems/mqterm/mqterm/jobs.py"],
+    ["mqterm/terminal.py", "github:solanus-systems/mqterm/mqterm/terminal.py"]
   ],
   "deps": [
     ["github:solanus-systems/amqc", "v0.1.0"],
     ["logging", "latest"]
   ],
-  "version": "0.1.0"
+  "version": "0.2.0"
 }

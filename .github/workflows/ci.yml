@@ -39,7 +39,5 @@ jobs:
         run: ./bin/setup
       - name: Install the package
         run: "micropython -m mip install github:${{ github.repository }}@${{ github.ref_name }}"
-      - name: Cross-compile the package
-        run: ./bin/compile
       - name: Run tests
         run: micropython -m unittest

@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+# ensure we can import the modules from the package
+# import any mocked modules from tests/mocks/ first so they take precedence
+export MICROPYPATH="$(pwd)/tests/mocks:$(pwd):.frozen:~/.micropython/lib:/usr/lib/micropython"
+
+# bail out if mosquitto executable not found with `which mosquitto`
+if ! which mosquitto > /dev/null; then
+    echo "mosquitto not found"
+    exit 1
+fi
+
+# start mosquitto broker
+echo "starting mosquitto broker"
+mosquitto -d
+
+# loop over all test files in tests/mpy/e2e and run them with ./bin/micropython
+for test in tests/e2e/e2e_*.py; do
+    # print test file name
+    echo -en "$test "
+
+    # run test and if any test fails, set failed=1
+    if ! micropython $test; then
+        failed=1
+    fi
+done
+
+# stop mosquitto broker
+echo "shutting down mosquitto broker"
+pkill mosquitto
+
+# if failed is set, exit with status 1 (so CI will fail)
+if [ -n "$failed" ]; then
+    exit 1
+fi

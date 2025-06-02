@@ -21,7 +21,7 @@ jobs:
     name: test
     runs-on: ubuntu-latest
     env:
-      MICROPYPATH: ".frozen:~/.micropython/lib:/usr/lib/micropython:$(pwd)"
+      MICROPYPATH: "$(pwd)/tests/mocks:$(pwd):.frozen:~/.micropython/lib:/usr/lib/micropython"
     steps:
       - uses: actions/checkout@v2
       - name: Build micropython
@@ -37,7 +37,11 @@ jobs:
           rm -rf micropython
       - name: Install test dependencies
         run: ./bin/setup
-      - name: Install the package
+      - name: Install mosquitto
+        run: sudo apt-get install -y mosquitto
+      - name: Install the package dependencies
         run: "micropython -m mip install github:${{ github.repository }}@${{ github.ref_name }}"
       - name: Run tests
         run: micropython -m unittest
+      - name: Run integration tests
+        run: ./bin/test_e2e

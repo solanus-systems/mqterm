@@ -104,7 +104,7 @@ class MqttTerminal:
                 self.logger.debug(f"Streaming {bytes_read} bytes")
                 await self.mqtt_client.publish(
                     self.out_topic,
-                    self.out_view[:bytes_read].tobytes(),
+                    self.out_view[:bytes_read],
                     qos=1,
                     properties={
                         self.PROP_CORR: job.client_id.encode("utf-8"),

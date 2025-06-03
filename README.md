@@ -4,9 +4,7 @@
 
 An MQTT-based terminal for remote management of micropython devices.
 
-Also includes a CPython-based client for interacting with devices running `mqterm` called `mqshell`.
-
-Adapted from [mqboard](https://github.com/tve/mqboard).
+Inspired by [mqboard](https://github.com/tve/mqboard).
 
 ## Installation
 

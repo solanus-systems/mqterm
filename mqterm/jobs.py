@@ -118,7 +118,7 @@ class ListDirJob(Job):
     def output(self):
         import os
 
-        return BytesIO("\n".join(os.listdir(self.args[0])).encode("utf-8"))
+        return BytesIO("\n".join(sorted(os.listdir(self.args[0]))).encode("utf-8"))
 
 
 class PutFileJob(SequentialJob):

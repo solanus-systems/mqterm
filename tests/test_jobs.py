@@ -2,9 +2,18 @@
 
 import asyncio
 import os
+from binascii import hexlify
+from hashlib import sha256
 from unittest import TestCase
 
-from mqterm.jobs import GetFileJob, Job, PlatformInfoJob, PutFileJob, WhoAmIJob
+from mqterm.jobs import (
+    FirmwareUpdateJob,
+    GetFileJob,
+    Job,
+    PlatformInfoJob,
+    PutFileJob,
+    WhoAmIJob,
+)
 
 
 class TestJob(TestCase):
@@ -116,3 +125,83 @@ class TestPutFileJob(TestCase):
         self.assertEqual(int(output), len(self.test_contents))
         with open(self.test_file, "rb") as f:
             self.assertEqual(f.read(), self.test_contents)
+
+
+class TestFirmwareUpdateJob(TestCase):
+
+    def test_update_sha(self):
+        """Should update the SHA256 hash with each update"""
+        job = FirmwareUpdateJob("ota", ["firmware.bin"])
+        asyncio.run(job.update(b"\xde\xad\xbe\xef", seq=1))
+        expected_sha = sha256(b"\xde\xad\xbe\xef").digest()
+        self.assertEqual(job.sha.digest(), expected_sha)
+
+    def test_write_block(self):
+        """Should write a block to partition when buffer is full"""
+        job = FirmwareUpdateJob("ota", ["firmware.bin"])
+
+        # Buffer is partially full; next update would overflow it
+        initial_data = b"\xde\xad\xbe\xef"
+        job.buffer[0 : len(initial_data)] = initial_data
+        job.buf_len = len(initial_data)
+        payload = bytearray(b"\xcc" * FirmwareUpdateJob.BLOCK_SIZE)
+        asyncio.run(job.update(payload, seq=1))
+
+        # After update, we've written exactly one full block
+        self.assertEqual(job.current_block, 1)
+        self.assertEqual(len(job.partition.contents), FirmwareUpdateJob.BLOCK_SIZE)
+
+    def test_wait_partial_block(self):
+        """Should not write a block until buffer is full"""
+        job = FirmwareUpdateJob("ota", ["firmware.bin"])
+
+        # Buffer is partially full but next update would not overflow it
+        initial_data = b"\xde\xad\xbe\xef"
+        job.buffer[0 : len(initial_data)] = initial_data
+        job.buf_len = len(initial_data)
+        payload = bytearray(b"\xcc" * (FirmwareUpdateJob.BLOCK_SIZE // 2))
+        asyncio.run(job.update(payload, seq=1))
+
+        # After update, nothing written yet
+        self.assertEqual(job.current_block, 0)
+        self.assertEqual(len(job.partition.contents), 0)
+
+    def test_last_block_fill(self):
+        """Should fill space in last block with empty data on final update"""
+        initial_data = b"\xde\xad\xbe\xef"
+        checksum = hexlify(sha256(initial_data).digest())
+        job = FirmwareUpdateJob("ota", [checksum])
+
+        # Send and complete the update
+        asyncio.run(job.update(initial_data, seq=1))
+        asyncio.run(job.update(b"", seq=-1))
+
+        # After final update, we should have written one last block of full size
+        self.assertEqual(job.current_block, 1)
+        self.assertEqual(len(job.partition.contents), FirmwareUpdateJob.BLOCK_SIZE)
+        self.assertEqual(
+            job.partition.contents[: len(initial_data)],
+            initial_data,
+            "Last block should contain the initial data",
+        )
+        self.assertEqual(
+            job.partition.contents[len(initial_data) :],
+            bytearray(
+                0xFF for _ in range(FirmwareUpdateJob.BLOCK_SIZE - len(initial_data))
+            ),
+            "Remaining bytes in last block should be filled with empty data",
+        )
+
+    def test_output(self):
+        """Should return the total bytes written as output"""
+        initial_data = b"\xde\xad\xbe\xef"
+        checksum = hexlify(sha256(initial_data).digest())
+        job = FirmwareUpdateJob("ota", [checksum])
+
+        # Send and complete the update
+        asyncio.run(job.update(initial_data, seq=1))
+        asyncio.run(job.update(b"", seq=-1))
+
+        # Output should be the total bytes written
+        output = job.output().read().decode("utf-8").strip()
+        self.assertEqual(output, "4")

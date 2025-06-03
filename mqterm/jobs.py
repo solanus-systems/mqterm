@@ -1,4 +1,9 @@
+import logging
+from binascii import hexlify
+from hashlib import sha256
 from io import BytesIO
+
+from micropython import const
 
 from mqterm import VERSION
 
@@ -8,7 +13,7 @@ class Job:
 
     argc = 0
 
-    def __init__(self, cmd, args=[], client_id="localhost"):
+    def __init__(self, cmd, args=[], client_id="localhost", **kwargs):
         if not self.argc:
             self.argc = len(args)
         if len(args) != self.argc:
@@ -144,6 +149,101 @@ class PutFileJob(SequentialJob):
         return BytesIO(str(self.bytes_written).encode("utf-8"))
 
 
+class FirmwareUpdateJob(SequentialJob):
+    """A job to update the firmware of the device over the air."""
+
+    argc = 1
+
+    BLOCK_SIZE = const(4096)  # Flash memory block size in bytes
+
+    def __init__(self, *args, **kwargs):
+        try:
+            from esp32 import Partition
+        except ImportError:
+            raise ValueError("Firmware updates are not supported on this platform")
+
+        super().__init__(*args, **kwargs)
+        self.checksum = self.args[0]
+        self.sha = sha256()
+        self.buffer = bytearray(self.BLOCK_SIZE)
+        self.buf_len = 0
+        self.bytes_written = 0
+        self.current_block = 0
+        self.partition = Partition(Partition.RUNNING).get_next_update()
+        self.logger = kwargs.get("logger", logging.getLogger("ota"))
+
+    async def update(self, payload, seq):
+        """Write the payload to the firmware file and close if finished."""
+        await super().update(payload, seq)
+        if payload:
+            self.sha.update(payload)
+            payload_len = len(payload)
+
+        if self.ready:
+            self.logger.debug("Firmware data received")
+            # If there is any data left in the buffer, write it to flash memory
+            if self.buf_len > 0:
+                self._write_block()
+
+            # Finalize the firmware update
+            self._validate_firmware()
+            self.partition.set_boot()
+        else:
+            # If this message would overflow the buffer, we're ready to write a block
+            if self.buf_len + payload_len >= self.BLOCK_SIZE:
+                self._write_block(payload, payload_len)
+
+            # Otherwise, just add the payload to the buffer
+            else:
+                self.buffer[self.buf_len : self.buf_len + payload_len] = payload
+                self.buf_len += payload_len
+            self.bytes_written += payload_len
+
+    def _write_block(self, payload=None, payload_len=None):
+        """Assemble a block and write to flash memory."""
+        # See how much space is left in the block
+        block_remaining = self.BLOCK_SIZE - self.buf_len
+
+        # If there is space remaining in the block and we got passed a payload,
+        # use as much of it as we can to fill the block. If no payload, fill up
+        # the rest of the block with empty data instead.
+        if block_remaining > 0:
+            if payload:
+                self.buffer[self.buf_len : self.BLOCK_SIZE] = payload[:block_remaining]
+                payload_len -= block_remaining
+                self.bytes_written += payload_len
+            else:
+                for i in range(self.buf_len, self.BLOCK_SIZE):
+                    self.buffer[i] = 0xFF  # Erased flash memory is 0xFF
+        self.buf_len = self.BLOCK_SIZE  # Buffer is now full
+
+        # Write the current block to flash memory and reset buffer
+        self.partition.writeblocks(self.current_block, self.buffer)
+        self.current_block += 1
+        self.buf_len = 0
+
+        # If there is still data left from the payload, add it to the buffer
+        # for the next block and reset the buffer length
+        if payload_len and payload_len > 0:
+            self.buffer[:payload_len] = payload[block_remaining:]
+            self.buf_len = payload_len
+
+    def _validate_firmware(self):
+        """Validate the firmware file before finalizing the update."""
+        hex_digest = hexlify(self.sha.digest())
+        if not hex_digest == self.checksum:
+            raise ValueError(
+                f"Checksum mismatch: expected {self.checksum}, got {hex_digest}"
+            )
+
+    def output(self):
+        """Return the number of bytes written to the firmware file."""
+        self.logger.debug(
+            f"Firmware update complete, total bytes written: {self.bytes_written}"
+        )
+        return BytesIO(str(self.bytes_written).encode("utf-8"))
+
+
 # Map commands to associated job names
 COMMANDS = {
     "whoami": WhoAmIJob,
@@ -151,4 +251,5 @@ COMMANDS = {
     "cat": GetFileJob,
     "ls": ListDirJob,
     "cp": PutFileJob,
+    "ota": FirmwareUpdateJob,
 }

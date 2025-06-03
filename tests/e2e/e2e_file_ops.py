@@ -10,7 +10,7 @@ from io import BytesIO
 
 from amqc.client import MQTTClient, config
 
-from mqterm.terminal import MqttTerminal
+from mqterm.terminal import MqttTerminal, format_properties
 
 # Set up logging; pass LOG_LEVEL=DEBUG if needed for local testing
 logger = logging.getLogger()
@@ -42,19 +42,19 @@ control_client = MQTTClient(control_config, logger=control_logger)
 term = MqttTerminal(device_client, topic_prefix="/test")
 
 
-def create_props(seq: int, client_id: str) -> dict:
-    """Create MQTTv5 properties with a seq number and client ID."""
-    return {
-        MqttTerminal.PROP_CORR: client_id.encode("utf-8"),
-        MqttTerminal.PROP_USER: {"seq": str(seq)},
-    }
+# def create_props(seq: int, client_id: str) -> dict:
+#     """Create MQTTv5 properties with a seq number and client ID."""
+#     return {
+#         CORRELATION_DATA: client_id.encode("utf-8"),
+#         USER_PROPERTY: {"seq": str(seq)},
+#     }
 
 
 async def send_file(buffer: BytesIO):
     """Send a file to the terminal."""
     # Send the first message that will create the job
     seq = 0
-    props = create_props(seq, "tty0")
+    props = format_properties("tty0", seq)
     await control_client.publish(
         "/test/tty/in", "cp test.txt".encode("utf-8"), properties=props
     )
@@ -68,7 +68,7 @@ async def send_file(buffer: BytesIO):
             seq += 1
         else:
             seq = -1
-        props = create_props(seq, "tty0")
+        props = format_properties("tty0", seq)
         logger.debug(f"Sending chunk {seq} of size {len(chunk)}: {chunk!r}")
         await control_client.publish("/test/tty/in", chunk, properties=props)
         if seq == -1:
@@ -90,7 +90,7 @@ async def get_file(buffer: BytesIO):
     """Send a file to the terminal and read it back."""
     # Send the request for the file
     seq = 0
-    props = create_props(seq, "tty0")
+    props = format_properties("tty0", seq)
     await control_client.publish(
         "/test/tty/in", "cat test.txt".encode(), properties=props
     )

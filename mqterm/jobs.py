@@ -124,11 +124,11 @@ class ListDirJob(Job):
 class PutFileJob(SequentialJob):
     """A job to stream a file from another client to the device."""
 
-    argc = 2
+    argc = 1
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.file = open(self.args[1], "wb")
+        self.file = open(self.args[0], "wb")
         self.bytes_written = 0
 
     async def update(self, payload, seq):

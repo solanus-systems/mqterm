@@ -56,7 +56,7 @@ async def send_file(buffer: BytesIO):
     seq = 0
     props = create_props(seq, "tty0")
     await control_client.publish(
-        "/test/tty/in", "cp test.txt test.txt".encode("utf-8"), properties=props
+        "/test/tty/in", "cp test.txt".encode("utf-8"), properties=props
     )
 
     # Send the file in 4-byte chunks; close when done

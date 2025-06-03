@@ -20,8 +20,6 @@ jobs:
   test:
     name: test
     runs-on: ubuntu-latest
-    env:
-      MICROPYPATH: "$(pwd)/tests/mocks:$(pwd):.frozen:~/.micropython/lib:/usr/lib/micropython"
     steps:
       - uses: actions/checkout@v2
       - name: Build micropython
@@ -43,5 +41,7 @@ jobs:
         run: "micropython -m mip install github:${{ github.repository }}@${{ github.ref_name }}"
       - name: Run tests
         run: micropython -m unittest
+        env:
+          MICROPYPATH: "${{ github.workspace }}:.frozen:~/.micropython/lib:/usr/lib/micropython:${{ github.workspace }}/tests/mocks"
       - name: Run integration tests
         run: ./bin/test_e2e

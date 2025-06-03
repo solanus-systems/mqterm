@@ -1,14 +1,13 @@
 import logging
 
+from amqc.properties import CORRELATION_DATA, USER_PROPERTY
+
 from mqterm.jobs import Job
 
 
 class MqttTerminal:
     PKTLEN = 1400  # data bytes that reasonably fit into a TCP packet
     BUFLEN = PKTLEN * 2  # payload size for MQTT messages
-
-    PROP_USER = 0x26  # mqtt user properties
-    PROP_CORR = 0x09  # mqtt correlation data
 
     def __init__(
         self, mqtt_client, topic_prefix=None, logger=logging.getLogger("mqterm")
@@ -49,8 +48,8 @@ class MqttTerminal:
                 str(e).encode("utf-8"),
                 qos=1,
                 properties={
-                    self.PROP_CORR: client_id.encode("utf-8"),
-                    self.PROP_USER: {"seq": str(seq)},
+                    CORRELATION_DATA: client_id.encode("utf-8"),
+                    USER_PROPERTY: {"seq": str(seq)},
                 },
             )
         except Exception as e:
@@ -60,8 +59,8 @@ class MqttTerminal:
                 str(e).encode("utf-8"),
                 qos=1,
                 properties={
-                    self.PROP_CORR: client_id.encode("utf-8"),
-                    self.PROP_USER: {"seq": "-1"},
+                    CORRELATION_DATA: client_id.encode("utf-8"),
+                    USER_PROPERTY: {"seq": "-1"},
                 },
             )
             if client_id in self.jobs:  # remove job on fatal error
@@ -88,8 +87,8 @@ class MqttTerminal:
                 b"",
                 qos=1,
                 properties={
-                    self.PROP_CORR: client_id.encode("utf-8"),
-                    self.PROP_USER: {"seq": "-1"},
+                    CORRELATION_DATA: client_id.encode("utf-8"),
+                    USER_PROPERTY: {"seq": "-1"},
                 },
             )
             del self.jobs[client_id]
@@ -107,8 +106,8 @@ class MqttTerminal:
                     self.out_view[:bytes_read],
                     qos=1,
                     properties={
-                        self.PROP_CORR: job.client_id.encode("utf-8"),
-                        self.PROP_USER: {"seq": str(seq)},
+                        CORRELATION_DATA: job.client_id.encode("utf-8"),
+                        USER_PROPERTY: {"seq": str(seq)},
                     },
                 )
                 seq += 1
@@ -118,7 +117,7 @@ class MqttTerminal:
     # Client ID: MQTT Correlation Data
     # Always bytes; we format it as UTF-8
     def _get_client_id(self, properties):
-        client_id = properties.get(self.PROP_CORR, None)
+        client_id = properties.get(CORRELATION_DATA, None)
         if not client_id:
             raise ValueError("Missing client ID")
         return client_id.decode("utf-8")
@@ -126,7 +125,7 @@ class MqttTerminal:
     # Sequence: MQTT User Properties
     # List of tuples; we store sequence info as a string in the first one
     def _get_seq(self, properties):
-        user_properties = properties.get(self.PROP_USER, {})
+        user_properties = properties.get(USER_PROPERTY, {})
         seq = user_properties.get("seq", None)
         if not seq:
             raise ValueError("Missing sequence information")

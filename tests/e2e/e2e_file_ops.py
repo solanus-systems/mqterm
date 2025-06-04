@@ -42,14 +42,6 @@ control_client = MQTTClient(control_config, logger=control_logger)
 term = MqttTerminal(device_client, topic_prefix="/test")
 
 
-# def create_props(seq: int, client_id: str) -> dict:
-#     """Create MQTTv5 properties with a seq number and client ID."""
-#     return {
-#         CORRELATION_DATA: client_id.encode("utf-8"),
-#         USER_PROPERTY: {"seq": str(seq)},
-#     }
-
-
 async def send_file(buffer: BytesIO):
     """Send a file to the terminal."""
     # Send the first message that will create the job

@@ -7,7 +7,7 @@ from mqterm.jobs import Job
 
 def format_topic(*parts):
     """Create a slash-delimited MQTT topic from a list of strings."""
-    return "/" + "/".join(part.strip("/") for part in parts if part)
+    return "/".join(part.strip("/") for part in parts if part)
 
 
 def format_properties(client_id, seq):

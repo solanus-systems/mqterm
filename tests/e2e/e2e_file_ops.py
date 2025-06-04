@@ -39,7 +39,7 @@ device_client = MQTTClient(device_config, logger=device_logger)
 control_client = MQTTClient(control_config, logger=control_logger)
 
 # Set up the terminal
-term = MqttTerminal(device_client, topic_prefix="/test")
+term = MqttTerminal(device_client, topic_prefix="test")
 
 
 async def send_file(buffer: BytesIO):
@@ -48,7 +48,7 @@ async def send_file(buffer: BytesIO):
     seq = 0
     props = format_properties("tty0", seq)
     await control_client.publish(
-        "/test/tty/in", "cp test.txt".encode("utf-8"), properties=props
+        "test/tty/in", "cp test.txt".encode("utf-8"), properties=props
     )
 
     # Send the file in 4-byte chunks; close when done
@@ -62,7 +62,7 @@ async def send_file(buffer: BytesIO):
             seq = -1
         props = format_properties("tty0", seq)
         logger.debug(f"Sending chunk {seq} of size {len(chunk)}: {chunk!r}")
-        await control_client.publish("/test/tty/in", chunk, properties=props)
+        await control_client.publish("test/tty/in", chunk, properties=props)
         if seq == -1:
             break
 
@@ -84,7 +84,7 @@ async def get_file(buffer: BytesIO):
     seq = 0
     props = format_properties("tty0", seq)
     await control_client.publish(
-        "/test/tty/in", "cat test.txt".encode(), properties=props
+        "test/tty/in", "cat test.txt".encode(), properties=props
     )
 
     # Wait until the received buffer gets populated with the response
@@ -107,7 +107,7 @@ async def device_handler():
 # Handler for control messages that logs and stores them
 async def control_handler(buffer):
     async for topic, payload, _retained, properties in control_client.queue:
-        if topic == "/test/tty/err":
+        if topic == "test/tty/err":
             logger.error(f"Control received error: {payload.decode('utf-8')}")
         else:
             buffer.write(payload)  # Don't decode yet
@@ -118,8 +118,8 @@ async def control_handler(buffer):
 async def main():
     # Connect all clients and the terminal
     await control_client.connect(True)
-    await control_client.subscribe("/test/tty/out")
-    await control_client.subscribe("/test/tty/err")
+    await control_client.subscribe("test/tty/out")
+    await control_client.subscribe("test/tty/err")
     await device_client.connect(True)
     await term.connect()
 

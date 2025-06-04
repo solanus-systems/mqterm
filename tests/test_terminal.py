@@ -3,7 +3,7 @@ from io import BytesIO
 from unittest import TestCase, skip
 
 from mqterm.jobs import Job, SequentialJob
-from mqterm.terminal import MqttTerminal, format_properties
+from mqterm.terminal import MqttTerminal, format_properties, format_topic
 from tests.utils import AsyncMock, Mock, call
 
 
@@ -28,10 +28,19 @@ class MockSequentialJob(SequentialJob):
     def output(self):
         return BytesIO(self.contents.encode("utf-8"))
 
+class TestFormatTopic(TestCase):
+    def test_format_topic(self):
+        """Test the format_topic function."""
+        self.assertEqual(format_topic("a", "b", "c"), "a/b/c")
+        self.assertEqual(format_topic("a", None, "c"), "a/c")
+        self.assertEqual(format_topic("", "b", None), "b")
+        self.assertEqual(format_topic("a/", "b/"), "a/b")
+        self.assertEqual(format_topic(), "")
+
 
 class TestMqttTerminal(TestCase):
     def setUp(self):
-        self.in_topic = b"/tty/in"
+        self.in_topic = b"tty/in"
         self.mqtt_client = Mock()
         self.mqtt_client.publish = Mock()
         self.term = MqttTerminal(self.mqtt_client)
@@ -67,7 +76,7 @@ class TestMqttTerminal(TestCase):
     def test_handle_msg_wrong_topic(self):
         """MqttTerminal should ignore messages on wrong topic"""
         payload = "get_file file.txt"
-        topic = b"/wrong/topic"
+        topic = b"wrong/topic"
         self.term.update_job = AsyncMock()
         asyncio.run(
             self.term.handle_msg(topic, payload.encode("utf-8"), format_properties("localhost", -1))

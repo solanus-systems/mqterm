@@ -64,8 +64,13 @@ class MqttTerminal:
         """Stop processing messages in the input stream."""
         await self.mqtt_client.unsubscribe(self.in_topic)
 
-    async def handle_msg(self, _topic, msg, properties={}):
+    async def handle_msg(self, topic, msg, properties={}):
         """Process a single MQTT message and apply to the appropriate job."""
+        topic = topic.decode("utf-8")
+        if not topic.startswith(self.in_topic):
+            self.logger.debug(f"Terminal received message on {topic}; ignoring")
+            return
+
         client_id = parse_client_id(properties)
         seq = parse_seq(properties)
         try:

@@ -14,7 +14,16 @@ class Mock:
     def __call__(self, *args, **kwargs):
         self._calls.append(call(*args, **kwargs))
 
+    def assert_called(self):
+        """Assert that the mock was called at least once."""
+        assert len(self._calls) > 0, "Expected mock to be called, but it was not."
+
+    def assert_not_called(self):
+        """Assert that the mock was not called."""
+        assert len(self._calls) == 0, "Expected mock to not be called, but it was."
+
     def assert_called_with(self, *args, **kwargs):
+        """Assert that the mock was last called with the given arguments."""
         # First call should be self, so we prepend it
         expected_args = [self] + list(args)
         expectation = call(*expected_args, **kwargs)
@@ -24,6 +33,12 @@ class Mock:
             expectation, self._calls[-1]
         )
 
+    def assert_has_calls(self, calls):
+        """Assert that the mock has the expected calls with arguments."""
+        assert self._calls == calls, "Expected calls {}, got {}".format(
+            calls, self._calls
+        )
+
 
 class AsyncMock(Mock):
     """An async version of Mock that can be awaited."""
@@ -31,8 +46,18 @@ class AsyncMock(Mock):
     async def __call__(self, *args, **kwargs):
         return super().__call__(self, *args, **kwargs)
 
+    def assert_awaited(self):
+        """Assert that the async mock was awaited at least once."""
+        return super().assert_called()
+
+    def assert_not_awaited(self):
+        """Assert that the async mock was not awaited."""
+        return super().assert_not_called()
+
     def assert_awaited_with(self, *args, **kwargs):
+        """Assert that the async mock was last awaited with the given arguments."""
         return super().assert_called_with(*args, **kwargs)
 
     def assert_has_awaits(self, awaits):
-        assert self._calls == awaits
+        """Assert that the async mock has the expected awaits with arguments."""
+        return super().assert_has_calls(awaits)

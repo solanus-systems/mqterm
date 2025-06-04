@@ -31,7 +31,7 @@ class MockSequentialJob(SequentialJob):
 
 class TestMqttTerminal(TestCase):
     def setUp(self):
-        self.in_topic = "/tty/in"
+        self.in_topic = b"/tty/in"
         self.mqtt_client = Mock()
         self.mqtt_client.publish = Mock()
         self.term = MqttTerminal(self.mqtt_client)
@@ -63,6 +63,16 @@ class TestMqttTerminal(TestCase):
             asyncio.run(
                 self.term.handle_msg(self.in_topic, payload.encode("utf-8"), props)
             )
+
+    def test_handle_msg_wrong_topic(self):
+        """MqttTerminal should ignore messages on wrong topic"""
+        payload = "get_file file.txt"
+        topic = b"/wrong/topic"
+        self.term.update_job = AsyncMock()
+        asyncio.run(
+            self.term.handle_msg(topic, payload.encode("utf-8"), format_properties("localhost", -1))
+        )
+        self.term.update_job.assert_not_awaited()
 
     def test_handle_msg(self):
         """MqttTerminal should parse MQTT messages to update jobs"""

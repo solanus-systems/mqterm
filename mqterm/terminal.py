@@ -104,7 +104,7 @@ class MqttTerminal:
             cmd = payload.decode("utf-8")
             job = Job.from_cmd(cmd, client_id=client_id)
             self.jobs[client_id] = job
-            self.logger.debug(f"Created {job}")
+            self.logger.info(f"Created {job}")
 
         # Run the job if it's ready and stream the results / signal completion
         if job.ready:
@@ -115,6 +115,7 @@ class MqttTerminal:
                 qos=1,
                 properties=format_properties(client_id, -1),
             )
+            self.logger.info(f"Completed {job}")
             del self.jobs[client_id]
 
     async def stream_job_output(self, job):

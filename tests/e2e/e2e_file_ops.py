@@ -146,5 +146,11 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    finally:
+        try:
+            os.unlink("test.txt")
+        except OSError:
+            pass
     print("\033[1m\tOK\033[0m")

@@ -84,7 +84,7 @@ async def get_file(buffer: BytesIO):
     seq = 0
     props = format_properties("tty0", seq)
     await control_client.publish(
-        "test/tty/in", "cat test.txt".encode(), properties=props
+        "test/tty/in", "cat test.txt".encode('utf-8'), properties=props
     )
 
     # Wait until the received buffer gets populated with the response
@@ -129,7 +129,7 @@ async def main():
     asyncio.create_task(device_handler())
 
     bytes_sent = await send_file(buffer)
-    logger.debug(f"Sent {bytes_sent.decode()} bytes to the device")
+    logger.debug(f"Sent {bytes_sent.decode('utf-8')} bytes to the device")
     bytes_received = await get_file(buffer)
     logger.debug(f"Received {len(bytes_received)} bytes from the device")
 

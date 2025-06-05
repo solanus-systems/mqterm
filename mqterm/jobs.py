@@ -184,7 +184,6 @@ class FirmwareUpdateJob(SequentialJob):
             payload_len = len(payload)
 
         if self.ready:
-            self.logger.debug("Firmware data received")
             # If there is any data left in the buffer, write it to flash memory
             if self.buf_len > 0:
                 self._write_block()
@@ -192,6 +191,9 @@ class FirmwareUpdateJob(SequentialJob):
             # Finalize the firmware update
             self._validate_firmware()
             self.partition.set_boot()
+            self.logger.info(
+                f"Firmware update complete, wrote {self.bytes_written} bytes"
+            )
         else:
             # If this message would overflow the buffer, we're ready to write a block
             if self.buf_len + payload_len >= self.BLOCK_SIZE:
@@ -242,9 +244,6 @@ class FirmwareUpdateJob(SequentialJob):
 
     def output(self):
         """Return the number of bytes written to the firmware file."""
-        self.logger.debug(
-            f"Firmware update complete, total bytes written: {self.bytes_written}"
-        )
         return BytesIO(str(self.bytes_written).encode("utf-8"))
 
 

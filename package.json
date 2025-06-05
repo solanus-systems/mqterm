@@ -8,5 +8,5 @@
     ["github:solanus-systems/amqc", "v0.3.2"],
     ["logging", "latest"]
   ],
-  "version": "0.2.3"
+  "version": "0.2.4"
 }

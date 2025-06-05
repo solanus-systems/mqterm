@@ -169,7 +169,7 @@ class TestFirmwareUpdateJob(TestCase):
     def test_last_block_fill(self):
         """Should fill space in last block with empty data on final update"""
         initial_data = b"\xde\xad\xbe\xef"
-        checksum = hexlify(sha256(initial_data).digest())
+        checksum = hexlify(sha256(initial_data).digest()).decode('utf-8')
         job = FirmwareUpdateJob("ota", [checksum])
 
         # Send and complete the update
@@ -195,7 +195,7 @@ class TestFirmwareUpdateJob(TestCase):
     def test_output(self):
         """Should return the total bytes written as output"""
         initial_data = b"\xde\xad\xbe\xef"
-        checksum = hexlify(sha256(initial_data).digest())
+        checksum = hexlify(sha256(initial_data).digest()).decode('utf-8')
         job = FirmwareUpdateJob("ota", [checksum])
 
         # Send and complete the update

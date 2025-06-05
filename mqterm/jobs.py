@@ -234,7 +234,7 @@ class FirmwareUpdateJob(SequentialJob):
 
     def _validate_firmware(self):
         """Validate the firmware file before finalizing the update."""
-        hex_digest = hexlify(self.sha.digest())
+        hex_digest = hexlify(self.sha.digest()).decode()
         if not hex_digest == self.checksum:
             raise ValueError(
                 f"Checksum mismatch: expected {self.checksum}, got {hex_digest}"

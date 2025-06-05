@@ -170,7 +170,7 @@ class FirmwareUpdateJob(SequentialJob):
         self.bytes_written = 0
         self.current_block = 0
         self.partition = Partition(Partition.RUNNING).get_next_update()
-        self.logger = kwargs.get("logger", logging.getLogger("ota"))
+        self.logger: logging.Logger = kwargs.get("logger", logging.getLogger("ota"))
 
     def __str__(self):
         # Use shortened checksum in string representation

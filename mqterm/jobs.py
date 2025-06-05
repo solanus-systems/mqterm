@@ -172,6 +172,10 @@ class FirmwareUpdateJob(SequentialJob):
         self.partition = Partition(Partition.RUNNING).get_next_update()
         self.logger = kwargs.get("logger", logging.getLogger("ota"))
 
+    def __str__(self):
+        # Use shortened checksum in string representation
+        return f"Job for {self.client_id}: {self.cmd} {self.checksum[:8]}"
+
     async def update(self, payload, seq):
         """Write the payload to the firmware file and close if finished."""
         await super().update(payload, seq)

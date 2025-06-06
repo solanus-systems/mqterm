@@ -1,6 +1,3 @@
-# from unittest import TestCase
-
-
 def call(*args, **kwargs):
     return (tuple(args), dict(kwargs))
 
@@ -8,11 +5,17 @@ def call(*args, **kwargs):
 class Mock:
     """A mock callable object that stores its calls."""
 
-    def __init__(self):
+    def __init__(self, return_value=None, side_effect=None):
+        self.return_value = return_value
+        self.side_effect = side_effect
         self._calls = []
 
     def __call__(self, *args, **kwargs):
-        self._calls.append(call(*args, **kwargs))
+        """Call the mock and store the call details."""
+        self._calls.append(call(*args[1:], **kwargs))  # Skip the first argument (self)
+        if self.side_effect:
+            raise self.side_effect
+        return self.return_value
 
     def assert_called(self):
         """Assert that the mock was called at least once."""
@@ -24,17 +27,22 @@ class Mock:
 
     def assert_called_with(self, *args, **kwargs):
         """Assert that the mock was last called with the given arguments."""
-        # First call should be self, so we prepend it
-        expected_args = [self] + list(args)
-        expectation = call(*expected_args, **kwargs)
+        # Fail if no calls were made
+        self.assert_called()
 
         # Try to have a useful output for assertion failures
+        expectation = call(*args, **kwargs)
         assert self._calls[-1] == expectation, "Expected call with {}, got {}".format(
             expectation, self._calls[-1]
         )
 
     def assert_has_calls(self, calls):
         """Assert that the mock has the expected calls with arguments."""
+        assert calls, "Expected calls cannot be empty."
+
+        # Fail if no calls were made
+        self.assert_called()
+
         assert self._calls == calls, "Expected calls {}, got {}".format(
             calls, self._calls
         )

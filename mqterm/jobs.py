@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from binascii import hexlify
 from hashlib import sha256
@@ -247,6 +248,40 @@ class FirmwareUpdateJob(SequentialJob):
         return BytesIO(str(self.bytes_written).encode("utf-8"))
 
 
+class RebootJob(Job):
+    """A job to perform a hard or soft reboot of the device."""
+
+    argc = 1
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.mode = self.args[0]
+
+    def output(self):
+        """Reboot the device after a given delay."""
+        import machine
+
+        msg = f"Performing {self.mode} reboot"
+        try:
+            op = machine.reset if self.mode == "hard" else machine.soft_reset
+        except AttributeError:
+            raise OSError("Operation not supported on this platform")
+        if self.mode == "hard":
+            logging.critical(msg)
+        else:
+            logging.warning(msg)
+
+        # Schedule reboot in three seconds
+        async def reboot_callback(op):
+            await asyncio.sleep(3)
+            op()
+
+        asyncio.create_task(reboot_callback(op))
+
+        # Log the reboot action and return as output
+        return BytesIO(msg.encode("utf-8"))
+
+
 # Map commands to associated job names
 COMMANDS = {
     "whoami": WhoAmIJob,
@@ -255,4 +290,5 @@ COMMANDS = {
     "ls": ListDirJob,
     "cp": PutFileJob,
     "ota": FirmwareUpdateJob,
+    "reboot": RebootJob,
 }

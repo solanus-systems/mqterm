@@ -12,6 +12,7 @@ from mqterm.jobs import (
     Job,
     PlatformInfoJob,
     PutFileJob,
+    RebootJob,
     WhoAmIJob,
 )
 
@@ -169,7 +170,7 @@ class TestFirmwareUpdateJob(TestCase):
     def test_last_block_fill(self):
         """Should fill space in last block with empty data on final update"""
         initial_data = b"\xde\xad\xbe\xef"
-        checksum = hexlify(sha256(initial_data).digest()).decode('utf-8')
+        checksum = hexlify(sha256(initial_data).digest()).decode("utf-8")
         job = FirmwareUpdateJob("ota", [checksum])
 
         # Send and complete the update
@@ -195,7 +196,7 @@ class TestFirmwareUpdateJob(TestCase):
     def test_output(self):
         """Should return the total bytes written as output"""
         initial_data = b"\xde\xad\xbe\xef"
-        checksum = hexlify(sha256(initial_data).digest()).decode('utf-8')
+        checksum = hexlify(sha256(initial_data).digest()).decode("utf-8")
         job = FirmwareUpdateJob("ota", [checksum])
 
         # Send and complete the update
@@ -205,3 +206,19 @@ class TestFirmwareUpdateJob(TestCase):
         # Output should be the total bytes written
         output = job.output().read().decode("utf-8").strip()
         self.assertEqual(output, "4")
+
+
+class TestRebootJob(TestCase):
+    def test_run_hard(self):
+        """Reboot job should signal and perform a hard reboot"""
+        job = RebootJob("reboot", ["hard"])
+        with self.assertRaises(OSError):  # Can't do on unix
+            output = job.output().read().decode("utf-8").strip()
+            self.assertEqual(output, "Performing hard reboot")
+
+    def test_run_soft(self):
+        """Reboot job should signal a soft reboot"""
+        job = RebootJob("reboot", ["soft"])
+        # TODO: turn off or mock logger here to ignore the output
+        output = job.output().read().decode("utf-8").strip()
+        self.assertEqual(output, "Performing soft reboot")

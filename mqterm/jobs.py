@@ -92,7 +92,7 @@ class GetFileJob(Job):
     argc = 1
 
     def output(self):
-        return BytesIO(open(self.args[0], "rb").read())
+        return open(self.args[0], "rb")
 
 
 class WhoAmIJob(Job):

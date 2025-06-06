@@ -15,9 +15,8 @@ from mqterm.terminal import MqttTerminal, format_properties
 # Set up logging; pass LOG_LEVEL=DEBUG if needed for local testing
 logger = logging.getLogger()
 logger.setLevel(getattr(logging, os.getenv("LOG_LEVEL", "WARNING").upper()))
-formatter = logging.Formatter(
-    "%(asctime)s.%(msecs)d - %(levelname)s - %(name)s - %(message)s"
-)
+format_str = "%(asctime)s.%(msecs)03.0f - %(levelname)s - %(name)s - %(message)s"
+formatter = logging.Formatter(format_str)
 handler = logging.StreamHandler(sys.stdout)
 handler.setFormatter(formatter)
 logger.handlers = []

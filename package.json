@@ -5,7 +5,7 @@
     ["mqterm/terminal.py", "github:solanus-systems/mqterm/mqterm/terminal.py"]
   ],
   "deps": [
-    ["github:solanus-systems/amqc", "v0.3.3"],
+    ["github:solanus-systems/amqc", "v0.3.4"],
     ["logging", "latest"]
   ],
   "version": "0.3.0"

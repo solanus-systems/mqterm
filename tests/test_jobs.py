@@ -14,6 +14,7 @@ from mqterm.jobs import (
     PlatformInfoJob,
     PutFileJob,
     RebootJob,
+    RunPyJob,
     WhoAmIJob,
 )
 
@@ -27,6 +28,20 @@ class TestJob(TestCase):
         self.assertIsInstance(job, GetFileJob)
         with self.assertRaises(ValueError):
             Job.from_cmd("unknown")
+
+    def test_from_cmd_eval(self):
+        """Job should handle eval command"""
+        job = Job.from_cmd("eval '1 + 2'")
+        self.assertEqual(job.cmd, "eval")
+        self.assertEqual(job.args, ["1 + 2"])
+        self.assertIsInstance(job, RunPyJob)
+
+    def test_from_cmd_no_args(self):
+        """Job should handle commands with no arguments"""
+        job = Job.from_cmd("uname")
+        self.assertEqual(job.cmd, "uname")
+        self.assertEqual(job.args, [])
+        self.assertIsInstance(job, PlatformInfoJob)
 
     def test_str(self):
         """Job should have a string representation"""
@@ -212,11 +227,11 @@ class TestRebootJob(TestCase):
     def setUp(self):
         # Turn off logging during tests
         self.logger = logging.getLogger()
-        self.old_level = self.logger.level
-        self.logger.setLevel(logging.CRITICAL)
+        self.handlers = self.logger.handlers[:]
+        self.logger.handlers = []
 
     def tearDown(self):
-        self.logger.setLevel(self.old_level)
+        self.logger.handlers = self.handlers
 
     def test_run_hard(self):
         """Reboot job should signal and perform a hard reboot"""
@@ -230,3 +245,30 @@ class TestRebootJob(TestCase):
         job = RebootJob("reboot", ["soft"])
         output = job.output().read().decode("utf-8").strip()
         self.assertEqual(output, "Performing soft reboot")
+
+
+class TestRunPyJob(TestCase):
+    def test_eval(self):
+        """RunPyJob should evaluate a Python expression and return result"""
+        job = RunPyJob("eval", ["1 + 2"])
+        output = job.output().read().decode("utf-8").strip()
+        self.assertEqual(output, "3")
+
+    def test_globals(self):
+        """RunPyJob should use provided globals for evaluation"""
+        job = RunPyJob("eval", ["x + y"], globals={"x": 1, "y": 2})
+        output = job.output().read().decode("utf-8").strip()
+        self.assertEqual(output, "3")
+
+    def test_exec(self):
+        """RunPyJob should execute a Python script with side effects"""
+        cmd = """
+            with open("output.txt", "w") as f:
+                f.write("Hello, World!")
+        """.strip()
+        job = RunPyJob("exec", [cmd])
+        job_output = job.output().read().decode("utf-8").strip()
+        file_output = open("output.txt").read().strip()
+        self.assertEqual(job_output, "")  # No output expected
+        self.assertEqual(file_output, "Hello, World!")
+        os.remove("output.txt")

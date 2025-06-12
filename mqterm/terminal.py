@@ -44,7 +44,11 @@ class MqttTerminal:
     BUFLEN = PKTLEN * 2  # payload size for MQTT messages
 
     def __init__(
-        self, mqtt_client, topic_prefix=None, logger=logging.getLogger("mqterm")
+        self,
+        mqtt_client,
+        topic_prefix=None,
+        logger=logging.getLogger("mqterm"),
+        globals={},
     ):
         self.mqtt_client = mqtt_client
         self.topic_prefix = topic_prefix
@@ -55,6 +59,7 @@ class MqttTerminal:
         self.out_view = memoryview(self.out_buffer)
         self.logger = logger
         self.jobs = {}
+        self.globals = globals
 
     async def connect(self):
         """Start processing messages in the input stream."""
@@ -102,7 +107,7 @@ class MqttTerminal:
             self.logger.debug(f"Updated {job}, seq: {seq}")
         else:
             cmd = payload.decode("utf-8")
-            job = Job.from_cmd(cmd, client_id=client_id)
+            job = Job.from_cmd(cmd, client_id=client_id, globals=self.globals)
             self.jobs[client_id] = job
             self.logger.info(f"Created {job}")
 

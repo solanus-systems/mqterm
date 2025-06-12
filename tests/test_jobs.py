@@ -1,6 +1,7 @@
 """Test the GetFileJob."""
 
 import asyncio
+import logging
 import os
 from binascii import hexlify
 from hashlib import sha256
@@ -129,7 +130,6 @@ class TestPutFileJob(TestCase):
 
 
 class TestFirmwareUpdateJob(TestCase):
-
     def test_update_sha(self):
         """Should update the SHA256 hash with each update"""
         job = FirmwareUpdateJob("ota", ["firmware.bin"])
@@ -209,6 +209,15 @@ class TestFirmwareUpdateJob(TestCase):
 
 
 class TestRebootJob(TestCase):
+    def setUp(self):
+        # Turn off logging during tests
+        self.logger = logging.getLogger()
+        self.old_level = self.logger.level
+        self.logger.setLevel(logging.CRITICAL)
+
+    def tearDown(self):
+        self.logger.setLevel(self.old_level)
+
     def test_run_hard(self):
         """Reboot job should signal and perform a hard reboot"""
         job = RebootJob("reboot", ["hard"])
@@ -219,6 +228,5 @@ class TestRebootJob(TestCase):
     def test_run_soft(self):
         """Reboot job should signal a soft reboot"""
         job = RebootJob("reboot", ["soft"])
-        # TODO: turn off or mock logger here to ignore the output
         output = job.output().read().decode("utf-8").strip()
         self.assertEqual(output, "Performing soft reboot")

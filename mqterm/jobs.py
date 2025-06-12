@@ -4,6 +4,14 @@ from binascii import hexlify
 from hashlib import sha256
 from io import BytesIO
 
+try:
+    from os import dupterm
+except ImportError:
+    # unix mpy doesn't have dupterm; define a no-op version
+    def dupterm(stream_object, index=0):
+        return stream_object
+
+
 from micropython import const
 
 from mqterm import VERSION
@@ -22,6 +30,7 @@ class Job:
                 f"Wrong number of arguments for {cmd}; expected {self.argc}"
             )
 
+        self.globals = kwargs.get("globals", {})
         self.cmd = cmd
         self.args = args
         self.client_id = client_id
@@ -45,13 +54,31 @@ class Job:
         return True
 
     @classmethod
-    def from_cmd(cls, cmd_str, client_id=None):
-        """Create a job from a command string, e.g. 'get_file file1.txt'."""
-        cmd, *args = cmd_str.split()
+    def from_cmd(cls, cmd_str, client_id=None, globals={}):
+        """Create a job from a command string, e.g. 'cat file1.txt'."""
+        # Split command string into command and following arguments
+        try:
+            cmd, remainder = cmd_str.split(" ", 1)
+        except ValueError:
+            cmd, remainder = cmd_str, None
+
+        # Lookup command in command table
         if cmd not in COMMANDS:
             raise ValueError(f"Unknown command: '{cmd}'")
         job_cls = COMMANDS[cmd]
-        return job_cls(cmd, args, client_id)
+
+        # For eval, preserve the remainder as a single string argument and de-quote it
+        # Otherwise, split remainder into separate arguments
+        if remainder:
+            if cmd == "eval":
+                args = [remainder.strip("\"'")]
+            else:
+                args = remainder.split(" ")
+        else:
+            args = []
+
+        # Create and return the job instance
+        return job_cls(cmd, args, client_id, globals=globals)
 
 
 class SequentialJob(Job):
@@ -266,10 +293,7 @@ class RebootJob(Job):
             op = machine.reset if self.mode == "hard" else machine.soft_reset
         except AttributeError:
             raise OSError("Operation not supported on this platform")
-        if self.mode == "hard":
-            logging.critical(msg)
-        else:
-            logging.warning(msg)
+        logging.critical(msg)
 
         # Schedule reboot in three seconds
         async def reboot_callback(op):
@@ -282,6 +306,41 @@ class RebootJob(Job):
         return BytesIO(msg.encode("utf-8"))
 
 
+class RunPyJob(Job):
+    """A job to evaluate Python script on the device."""
+
+    argc = 1
+
+    def output(self):
+        """Eval or exec given Python and return the result."""
+        expr = self.args[0]
+        try:
+            result = self.do_eval(expr)
+        except SyntaxError:  # Not an expression, try exec
+            result = self.do_exec(expr)
+        if isinstance(result, str):  # Ensure bytes output
+            result = result.encode("utf-8")
+        return BytesIO(result)
+
+    def do_eval(self, expr):
+        """Evaluate a Python expression and return the result."""
+        op = compile(expr, "<string>", "eval")
+        result = eval(op, self.globals, None)
+        return repr(result)
+
+    def do_exec(self, expr):
+        """Execute a Python statement and return the output."""
+        out_buf = BytesIO()
+        old_term = dupterm(out_buf)
+        try:
+            op = compile(expr, "<string>", "exec")
+            exec(op, self.globals, None)
+            result = out_buf.getvalue().strip()
+        finally:
+            dupterm(old_term)
+        return result
+
+
 # Map commands to associated job names
 COMMANDS = {
     "whoami": WhoAmIJob,
@@ -291,4 +350,5 @@ COMMANDS = {
     "cp": PutFileJob,
     "ota": FirmwareUpdateJob,
     "reboot": RebootJob,
+    "eval": RunPyJob,
 }

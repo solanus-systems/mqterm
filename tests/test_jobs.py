@@ -1,10 +1,11 @@
 """Test the GetFileJob."""
 
 import asyncio
+import logging
 import os
 from binascii import hexlify
 from hashlib import sha256
-from unittest import TestCase
+from unittest import TestCase, skip
 
 from mqterm.jobs import (
     FirmwareUpdateJob,
@@ -13,6 +14,7 @@ from mqterm.jobs import (
     PlatformInfoJob,
     PutFileJob,
     RebootJob,
+    RunPyJob,
     WhoAmIJob,
 )
 
@@ -26,6 +28,20 @@ class TestJob(TestCase):
         self.assertIsInstance(job, GetFileJob)
         with self.assertRaises(ValueError):
             Job.from_cmd("unknown")
+
+    def test_from_cmd_eval(self):
+        """Job should handle eval command"""
+        job = Job.from_cmd("eval '1 + 2'")
+        self.assertEqual(job.cmd, "eval")
+        self.assertEqual(job.args, ["1 + 2"])
+        self.assertIsInstance(job, RunPyJob)
+
+    def test_from_cmd_no_args(self):
+        """Job should handle commands with no arguments"""
+        job = Job.from_cmd("uname")
+        self.assertEqual(job.cmd, "uname")
+        self.assertEqual(job.args, [])
+        self.assertIsInstance(job, PlatformInfoJob)
 
     def test_str(self):
         """Job should have a string representation"""
@@ -129,7 +145,6 @@ class TestPutFileJob(TestCase):
 
 
 class TestFirmwareUpdateJob(TestCase):
-
     def test_update_sha(self):
         """Should update the SHA256 hash with each update"""
         job = FirmwareUpdateJob("ota", ["firmware.bin"])
@@ -209,6 +224,15 @@ class TestFirmwareUpdateJob(TestCase):
 
 
 class TestRebootJob(TestCase):
+    def setUp(self):
+        # Turn off logging during tests
+        self.logger = logging.getLogger()
+        self.handlers = self.logger.handlers[:]
+        self.logger.handlers = []
+
+    def tearDown(self):
+        self.logger.handlers = self.handlers
+
     def test_run_hard(self):
         """Reboot job should signal and perform a hard reboot"""
         job = RebootJob("reboot", ["hard"])
@@ -219,6 +243,26 @@ class TestRebootJob(TestCase):
     def test_run_soft(self):
         """Reboot job should signal a soft reboot"""
         job = RebootJob("reboot", ["soft"])
-        # TODO: turn off or mock logger here to ignore the output
         output = job.output().read().decode("utf-8").strip()
         self.assertEqual(output, "Performing soft reboot")
+
+
+class TestRunPyJob(TestCase):
+    def test_eval(self):
+        """RunPyJob should evaluate a Python expression and return result"""
+        job = RunPyJob("eval", ["1 + 2"])
+        output = job.output().read().decode("utf-8").strip()
+        self.assertEqual(output, "3")
+
+    def test_globals(self):
+        """RunPyJob should use provided globals for evaluation"""
+        job = RunPyJob("eval", ["x + y"], globals={"x": 1, "y": 2})
+        output = job.output().read().decode("utf-8").strip()
+        self.assertEqual(output, "3")
+
+    @skip("No dupterm in unix port")
+    def test_exec(self):
+        """RunPyJob should execute a Python script and return output"""
+        job = RunPyJob("eval", ['print("Hello, World!")'])
+        output = job.output().read().decode("utf-8").strip()
+        self.assertEqual(output, "Hello, World!")

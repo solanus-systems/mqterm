@@ -272,3 +272,13 @@ class TestRunPyJob(TestCase):
         self.assertEqual(job_output, "")  # No output expected
         self.assertEqual(file_output, "Hello, World!")
         os.remove("output.txt")
+
+    # NOTE: on unix micropython you need to compile with MICROPY_PY_OS_DUPTERM
+    # to capture output. If this fails, see:
+    # https://forum.micropython.org/viewtopic.php?t=7055
+    def test_exec_output(self):
+        """RunPyJob should capture output from executed script"""
+        cmd = 'import sys; sys.stdout.write("Hello, World!")'
+        job = RunPyJob("exec", [cmd])
+        output = job.output().read().decode("utf-8").strip()
+        self.assertEqual(output, "Hello, World!")

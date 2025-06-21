@@ -3,14 +3,7 @@ import logging
 from binascii import hexlify
 from hashlib import sha256
 from io import BytesIO
-
-try:
-    from os import dupterm
-except ImportError:
-    # unix mpy doesn't have dupterm; define a no-op version
-    def dupterm(stream_object, index=0):
-        return stream_object
-
+from os import dupterm
 
 from micropython import const
 

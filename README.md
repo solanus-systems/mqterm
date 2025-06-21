@@ -27,7 +27,7 @@ TODO
 
 ## Developing
 
-You need python and a build of micropython with `asyncio` support. Follow the steps in the CI workflow to get a `micropython` binary and add it to your `PATH`.
+You need python and a build of micropython with `asyncio` and `os.dupterm` support. Follow the steps in the CI workflow to get a `micropython` binary and add it to your `PATH`.
 
 Before making changes, install the development (CPython) dependencies:
 

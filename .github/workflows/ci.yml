@@ -24,12 +24,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Build micropython
+        env:
+          CFLAGS_EXTRA: "-DMICROPY_PY_OS_DUPTERM=2"  # os.dupterm support on unix
         run: |
-          git clone --depth 1 https://github.com/micropython/micropython.git
+          git clone -b v1.24-release --depth=1 --single-branch https://github.com/micropython/micropython.git
           cd micropython
           git submodule update --init
-          make -C mpy-cross
-          cp mpy-cross/build/mpy-cross /usr/local/bin/
           make -C ports/unix
           cp ports/unix/build-standard/micropython /usr/local/bin/
           cd ..
